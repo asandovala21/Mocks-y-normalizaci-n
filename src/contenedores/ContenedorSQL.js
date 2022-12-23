@@ -9,19 +9,15 @@ class ContenedorSQL {
 
     async getById(id) {
         try {
-            const [rowDataPacket] = await this.knex.select('*').from(this.tabla).where('id', id)
-            if (!rowDataPacket) throw 'elemento no encontrado'
-            return asPOJO(rowDataPacket)
+            return this.knex.select('*').from(this.tabla).where('id', id)
         } catch (error) {
             throw new Error(`Error al listar por id: ${error}`)
         }
     }
 
-    async getAll(criterio = {}) {
+    async getAll() {
         try {
-            const elems = await this.knex.select('*').from(this.tabla).where(criterio)
-            const pojos = elems.map(e => asPOJO(e))
-            return pojos
+            return this.knex.select('*').from(this.tabla)
         } catch (error) {
             throw new Error(`Error al listar todo: ${error}`)
         }
@@ -29,19 +25,15 @@ class ContenedorSQL {
 
     async save(elem) {
         try {
-            const [newId] = await this.knex.insert(elem).into(this.tabla)
-            elem.id = newId
-            return asPOJO(elem)
+            return this.knex.insert(elem).into(this.tabla)
         } catch (error) {
             throw new Error(`Error al guardar: ${error}`)
         }
     }
 
     async update(elem) {
-        elem.id = Number(elem.id)
         try {
-            await this.knex.update(elem).from(this.tabla).where('id', elem.id)
-            return asPOJO(elem)
+            return this.knex.from(this.tabla).where('id', elem.id).update(elem)
         } catch (error) {
             throw new Error(`Error al borrar: ${error}`)
         }
@@ -55,12 +47,16 @@ class ContenedorSQL {
         }
     }
 
-    async deleteAll(criterio = {}) {
+    async deleteAll() {
         try {
-            return this.knex.delete().from(this.tabla).where(criterio)
+            return this.knex.delete().from(this.tabla)
         } catch (error) {
             throw new Error(`Error al borrar: ${error}`)
         }
+    }
+
+    async disconnect() {
+        await this.knex.destroy();
     }
 }
 

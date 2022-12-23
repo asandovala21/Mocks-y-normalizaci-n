@@ -4,7 +4,7 @@ class ContenedorArchivo {
 
     constructor(ruta)
     {
-        this.ruta = `${config.fileSystem.path}/${ruta}`;
+        this.ruta = ruta;
     }
 
     save= async (producto)=>{

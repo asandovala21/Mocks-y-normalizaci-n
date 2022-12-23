@@ -1,7 +1,5 @@
 const socket = io.connect();
 
-//------------------------------------------------------------------------------------
-
 const formAgregarProducto = document.getElementById('formAgregarProducto')
 formAgregarProducto.addEventListener('submit', e => {
     e.preventDefault()
@@ -30,9 +28,20 @@ function makeHtmlTable(productos) {
         })
 }
 
-//-------------------------------------------------------------------------------------
 
-const inputUsername = document.getElementById('inputUsername')
+// Desnormalización
+
+
+// Esquema de autor
+const schemaAuthor = new normalizr.schema.Entity('author', {}, { idAttribute: 'id' });
+
+// Esquema mensaje
+const schemaMensaje = new normalizr.schema.Entity('post', { author: schemaAuthor }, { idAttribute: '_id' })
+
+// Esquema post
+const schemaMensajes = new normalizr.schema.Entity('posts', { mensajes: [schemaMensaje] }, { idAttribute: 'id' })
+
+const inputUsername = document.getElementById('username')
 const inputMensaje = document.getElementById('inputMensaje')
 const btnEnviar = document.getElementById('btnEnviar')
 
@@ -40,27 +49,52 @@ const formPublicarMensaje = document.getElementById('formPublicarMensaje')
 formPublicarMensaje.addEventListener('submit', e => {
     e.preventDefault()
 
-    const mensaje = { autor: inputUsername.value, texto: inputMensaje.value }
+    const mensaje = {
+        author: {
+            email: inputUsername.value,
+            nombre: document.getElementById('firstname').value,
+            apellido: document.getElementById('lastname').value,
+            edad: document.getElementById('age').value,
+            alias: document.getElementById('alias').value,
+            avatar: document.getElementById('avatar').value
+        },
+        text: inputMensaje.value
+    }
+
     socket.emit('nuevoMensaje', mensaje);
     formPublicarMensaje.reset()
     inputMensaje.focus()
 })
 
-socket.on('mensajes', mensajes => {
-    console.log(mensajes);
-    const html = makeHtmlList(mensajes)
+socket.on('mensajes', mensajesN => {
+
+    const mensajesNsize = JSON.stringify(mensajesN).length
+    console.log(mensajesN, mensajesNsize);
+
+    const mensajesD = normalizr.denormalize(mensajesN.result, schemaMensajes, mensajesN.entities)
+
+    const mensajesDsize = JSON.stringify(mensajesD).length
+    console.log(mensajesD, mensajesDsize);
+
+    const porcentajeC = parseInt((mensajesNsize * 100) / mensajesDsize)
+    console.log(`Porcentaje de compresión ${porcentajeC}%`)
+    document.getElementById('compresion-info').innerText = porcentajeC
+
+    console.log(mensajesD.mensajes);
+    const html = makeHtmlList(mensajesD.mensajes)
     document.getElementById('mensajes').innerHTML = html;
 })
 
 function makeHtmlList(mensajes) {
     return mensajes.map(mensaje => {
         return (`
-            <div>
-                <b style="color:blue;">${mensaje.autor}</b>
-                [<span style="color:brown;">${mensaje.fyh}</span>] :
-                <i style="color:green;">${mensaje.texto}</i>
-            </div>
-        `)
+        <div>
+            <b style="color:blue;">${mensaje.author.email}</b>
+            [<span style="color:brown;">${mensaje.fyh}</span>] :
+            <i style="color:green;">${mensaje.text}</i>
+            <img width="50" src="${mensaje.author.avatar}" alt=" ">
+        </div>
+    `)
     }).join(" ");
 }
 
@@ -75,3 +109,11 @@ inputMensaje.addEventListener('input', () => {
     const hayTexto = inputMensaje.value.length
     btnEnviar.disabled = !hayTexto
 })
+
+fetchProductosMock()
+            .then(productos => {
+                return makeHtmlTable(productos)
+            })
+            .then(html => {
+                document.getElementById('productos').innerHTML = html
+            })
